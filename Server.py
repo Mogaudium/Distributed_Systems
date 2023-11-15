@@ -1,36 +1,54 @@
+import os
 from flask import Flask, jsonify, request, send_from_directory
+from werkzeug.utils import secure_filename, safe_join
+from flask_mysqldb import MySQL
 
 app = Flask(__name__)
 
-# Dummy user data
-users = {
-    "user1": "password1",
-    "user2": "password2"
-}
+# MySQL configurations
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'egor'
+app.config['MYSQL_DB'] = 'audio_app'
 
-# Dummy audio file data
-audio_files = {
-    "1": "song1.mp3",
-    "2": "song2.mp3"
-}
+mysql = MySQL(app)
+
+@app.route('/register', methods=['POST'])
+def register():
+    username = request.form['username']
+    password = request.form['password']  
+    print("Received username:", username, "and password:", password)  # Debug print
+    cursor = mysql.connection.cursor()
+    cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
+    mysql.connection.commit()
+    cursor.close()
+
+    return jsonify({"message": "Registration successful"})
 
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form['username']
     password = request.form['password']
-    if username in users and users[username] == password:
+    
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
+    user = cursor.fetchone()
+    cursor.close()
+
+    if user:
         return jsonify({"message": "Logged in successfully"})
     else:
         return jsonify({"message": "Invalid credentials"}), 401
+    
+@app.route('/list-audio')
+def list_audio():
+    files = os.listdir('audio_files')  # Assuming 'audio_files' is your directory
+    return jsonify(files)
 
-@app.route('/files', methods=['GET'])
-def list_files():
-    return jsonify(audio_files)
-
-@app.route('/file/<filename>', methods=['GET'])
-def get_file(filename):
-    # Assuming files are stored in a directory named 'audio_files'
-    return send_from_directory('audio_files', filename)
+@app.route('/stream/<filename>', methods=['GET'])
+def stream_audio(filename):
+    directory = safe_join(app.root_path, 'audio_files')
+    return send_from_directory(directory, filename)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
