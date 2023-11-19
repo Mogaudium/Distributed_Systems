@@ -68,9 +68,9 @@ class MainAppWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Chinese Spotify')
         self.setGeometry(100, 100, 800, 600)
-
+        self.temp_file_path = None
         self.current_song = None
-        self.is_paused = False  
+        self.is_paused = False
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -78,56 +78,50 @@ class MainAppWindow(QMainWindow):
 
         self.list_widget = QListWidget(self)
         layout.addWidget(self.list_widget)
-        
-        # Play button
+
         play_button = QPushButton('Play', self)
         play_button.clicked.connect(self.play_selected_file)
         layout.addWidget(play_button)
 
-        # Pause button
         pause_button = QPushButton('Pause', self)
         pause_button.clicked.connect(self.pause_audio)
         layout.addWidget(pause_button)
 
-        # Stop button
         stop_button = QPushButton('Stop', self)
         stop_button.clicked.connect(self.stop_audio)
         layout.addWidget(stop_button)
 
-        #Update list button
         update_list_button = QPushButton('Update List', self)
         update_list_button.clicked.connect(self.update_file_list)
         layout.addWidget(update_list_button)
 
         self.central_widget.setLayout(layout)
 
+    def cleanup(self):
+        if self.temp_file_path and os.path.exists(self.temp_file_path):
+            os.remove(self.temp_file_path)
+            self.temp_file_path = None
+
+    @pyqtSlot()
     def play_selected_file(self):
         if self.is_paused:
-            # Continue playing the current song
             pygame.mixer.music.unpause()
             self.is_paused = False
         else:
             selected_item = self.list_widget.currentItem()
             if selected_item is not None:
-                selected_file = selected_item.text()
-                url = f'http://localhost:5000/stream/{selected_file}'
-            try:
+                self.current_song = selected_item.text()
+                url = f'http://localhost:5000/stream/{self.current_song}'
                 response = requests.get(url)
                 if response.status_code == 200:
-                    # Create a temporary file
                     temp_dir = tempfile.gettempdir()
-                    temp_file = os.path.join(temp_dir, selected_file)
-                    with open(temp_file, 'wb') as file:
-                        file.write(response.content)
-
-                    # Play the audio file using pygame
-                    pygame.mixer.music.load(temp_file)
-                    pygame.mixer.music.play()
-                    
+                    self.temp_file_path = os.path.join(temp_dir, os.path.basename(self.current_song))
+                    with open(self.temp_file_path, 'wb') as tmp_file:
+                        tmp_file.write(response.content)
+                        pygame.mixer.music.load(self.temp_file_path)
+                        pygame.mixer.music.play()
                 else:
                     QMessageBox.warning(self, 'Stream Error', 'Failed to stream file')
-            except Exception as e:
-                QMessageBox.warning(self, 'Playback Error', f'An error occurred while trying to play the file: {e}')
 
     @pyqtSlot()
     def pause_audio(self):
@@ -138,18 +132,20 @@ class MainAppWindow(QMainWindow):
     def stop_audio(self):
         pygame.mixer.music.stop()
         self.is_paused = False
-        self.current_song = None
+        self.cleanup()
 
     @pyqtSlot()
     def update_file_list(self):
         response = requests.get('http://localhost:5000/list-audio')
         if response.status_code == 200:
-            file_list = response.json()
             self.list_widget.clear()
-            self.list_widget.addItems(file_list)
+            self.list_widget.addItems(response.json())
         else:
             QMessageBox.warning(self, 'Error', 'Failed to retrieve file list')
 
+    def closeEvent(self, event):
+        self.cleanup()
+        event.accept()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
