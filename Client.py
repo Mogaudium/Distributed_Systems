@@ -1,9 +1,10 @@
 import sys
+import tempfile
 import pygame
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QListWidget, QMessageBox
 from PyQt5.QtCore import pyqtSlot
 import requests
-from tempfile import NamedTemporaryFile
+import os
 
 # Initialize Pygame's mixer with some common frequency and size
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)
@@ -68,17 +69,32 @@ class MainAppWindow(QMainWindow):
         self.setWindowTitle('Chinese Spotify')
         self.setGeometry(100, 100, 800, 600)
 
+        self.current_song = None
+        self.is_paused = False  
+
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         layout = QVBoxLayout()
 
         self.list_widget = QListWidget(self)
         layout.addWidget(self.list_widget)
-
+        
+        # Play button
         play_button = QPushButton('Play', self)
         play_button.clicked.connect(self.play_selected_file)
         layout.addWidget(play_button)
 
+        # Pause button
+        pause_button = QPushButton('Pause', self)
+        pause_button.clicked.connect(self.pause_audio)
+        layout.addWidget(pause_button)
+
+        # Stop button
+        stop_button = QPushButton('Stop', self)
+        stop_button.clicked.connect(self.stop_audio)
+        layout.addWidget(stop_button)
+
+        #Update list button
         update_list_button = QPushButton('Update List', self)
         update_list_button.clicked.connect(self.update_file_list)
         layout.addWidget(update_list_button)
@@ -86,26 +102,43 @@ class MainAppWindow(QMainWindow):
         self.central_widget.setLayout(layout)
 
     def play_selected_file(self):
-        selected_item = self.list_widget.currentItem()
-        if selected_item is not None:
-            selected_file = selected_item.text()
-            url = f'http://localhost:5000/stream/{selected_file}'
+        if self.is_paused:
+            # Continue playing the current song
+            pygame.mixer.music.unpause()
+            self.is_paused = False
+        else:
+            selected_item = self.list_widget.currentItem()
+            if selected_item is not None:
+                selected_file = selected_item.text()
+                url = f'http://localhost:5000/stream/{selected_file}'
             try:
-                # Stream the audio file from the server
-                with requests.get(url, stream=True) as response:
-                    if response.status_code == 200:
-                        # Save the streamed audio to a temporary file
-                        with NamedTemporaryFile(delete=True, suffix='.mp3') as tmp_file:
-                            for chunk in response.iter_content(chunk_size=4096):
-                                tmp_file.write(chunk)
-                            tmp_file.seek(0)  # Rewind the file
-                            # Play the audio file using pygame
-                            pygame.mixer.music.load(tmp_file.name)
-                            pygame.mixer.music.play()
-                    else:
-                        QMessageBox.warning(self, 'Stream Error', 'Failed to stream file')
+                response = requests.get(url)
+                if response.status_code == 200:
+                    # Create a temporary file
+                    temp_dir = tempfile.gettempdir()
+                    temp_file = os.path.join(temp_dir, selected_file)
+                    with open(temp_file, 'wb') as file:
+                        file.write(response.content)
+
+                    # Play the audio file using pygame
+                    pygame.mixer.music.load(temp_file)
+                    pygame.mixer.music.play()
+                    
+                else:
+                    QMessageBox.warning(self, 'Stream Error', 'Failed to stream file')
             except Exception as e:
                 QMessageBox.warning(self, 'Playback Error', f'An error occurred while trying to play the file: {e}')
+
+    @pyqtSlot()
+    def pause_audio(self):
+        pygame.mixer.music.pause()
+        self.is_paused = True
+
+    @pyqtSlot()
+    def stop_audio(self):
+        pygame.mixer.music.stop()
+        self.is_paused = False
+        self.current_song = None
 
     @pyqtSlot()
     def update_file_list(self):
