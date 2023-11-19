@@ -65,7 +65,7 @@ class LoginWindow(QMainWindow):
 class MainAppWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('Audio Client')
+        self.setWindowTitle('Chinese Spotify')
         self.setGeometry(100, 100, 800, 600)
 
         self.central_widget = QWidget()
