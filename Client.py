@@ -1,14 +1,38 @@
-import os
 import sys
+import os
+import tempfile
 import pygame
 import requests
-import tempfile
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QListWidget, QMessageBox, QSlider
-from PyQt5.QtCore import pyqtSlot, Qt, QSize
+from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon
 
 # Initialize Pygame
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)
+
+# Threading subclass
+class DownloadThread(QThread):
+    download_completed = pyqtSignal(str)
+    download_failed = pyqtSignal(str)
+
+    def __init__(self, url, safe_file_name):
+        QThread.__init__(self)
+        self.url = url
+        self.safe_file_name = safe_file_name
+
+    def run(self):
+        try:
+            response = requests.get(self.url, stream=True)
+            if response.status_code == 200:
+                temp_file_path = os.path.join(tempfile.gettempdir(), self.safe_file_name + '.mp3')
+                with open(temp_file_path, 'wb') as tmp_file:
+                    for chunk in response.iter_content(4096):
+                        tmp_file.write(chunk)
+                self.download_completed.emit(temp_file_path)
+            else:
+                self.download_failed.emit('Failed to download file.')
+        except Exception as e:
+            self.download_failed.emit(str(e))
 
 # Login window that leads to the main window
 class LoginWindow(QMainWindow):
@@ -74,6 +98,10 @@ class MainAppWindow(QMainWindow):
         self.current_song = None
         self.is_paused = False
 
+        # Setup UI
+        self.setup_ui()
+
+    def setup_ui(self):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         layout = QVBoxLayout()
@@ -114,11 +142,14 @@ class MainAppWindow(QMainWindow):
 
         self.central_widget.setLayout(layout)
 
+
+    # Delete temp file
     def cleanup(self):
         if self.temp_file_path and os.path.exists(self.temp_file_path):
             os.remove(self.temp_file_path)
             self.temp_file_path = None
 
+    # Play selected song
     @pyqtSlot()
     def play_selected_file(self):
         if self.is_paused:
@@ -129,37 +160,40 @@ class MainAppWindow(QMainWindow):
             if selected_item is not None:
                 self.current_song = selected_item.text()
                 url = f'http://localhost:5000/stream/{self.current_song}'
-                response = requests.get(url)
-                if response.status_code == 200:
-                    # Ensure the file name is safe for the filesystem
-                    safe_file_name = self.current_song.replace(" ", "_").replace("-", "_")
-                    # Create a temporary file
-                    temp_dir = tempfile.gettempdir()
-                    temp_file_path = os.path.join(temp_dir, safe_file_name + ".mp3")
-                    with open(temp_file_path, 'wb') as tmp_file:
-                        tmp_file.write(response.content)
+                safe_file_name = self.current_song.replace(" ", "_").replace("-", "_")
+                self.download_thread = DownloadThread(url, safe_file_name)
+                self.download_thread.download_completed.connect(self.on_download_complete)
+                self.download_thread.download_failed.connect(self.on_download_failed)
+                self.download_thread.start()
 
-                    # Try loading the music file
-                    try:
-                        pygame.mixer.music.load(temp_file_path)
-                        pygame.mixer.music.play()
-                        self.temp_file_path = temp_file_path
-                    except pygame.error as e:
-                        QMessageBox.warning(self, 'Playback Error', f'An error occurred: {e}')
-                else:
-                    QMessageBox.warning(self, 'Stream Error', 'Failed to stream file')
+    # Check if the download was successful
+    @pyqtSlot(str)
+    def on_download_complete(self, file_path):
+        try:
+            pygame.mixer.music.load(file_path)
+            pygame.mixer.music.play()
+            self.temp_file_path = file_path
+        except pygame.error as e:
+            QMessageBox.warning(self, 'Playback Error', f'An error occurred: {e}')
 
+    @pyqtSlot(str)
+    def on_download_failed(self, error_message):
+        QMessageBox.warning(self, 'Download Error', error_message)
+
+    # Pause audio method
     @pyqtSlot()
     def pause_audio(self):
         pygame.mixer.music.pause()
         self.is_paused = True
 
+    # Stop audio method
     @pyqtSlot()
     def stop_audio(self):
         pygame.mixer.music.stop()
         self.is_paused = False
         self.cleanup()
 
+    # Update existing songs
     @pyqtSlot()
     def update_file_list(self):
         response = requests.get('http://localhost:5000/list-audio')
@@ -169,6 +203,7 @@ class MainAppWindow(QMainWindow):
         else:
             QMessageBox.warning(self, 'Error', 'Failed to retrieve file list')
 
+    # Close event method
     def closeEvent(self, event):
         self.cleanup()
         event.accept()
