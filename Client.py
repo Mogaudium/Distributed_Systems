@@ -1,14 +1,16 @@
-import sys
-import tempfile
-import pygame
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QListWidget, QMessageBox
-from PyQt5.QtCore import pyqtSlot
-import requests
 import os
+import sys
+import pygame
+import requests
+import tempfile
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QListWidget, QMessageBox, QSlider
+from PyQt5.QtCore import pyqtSlot, Qt, QSize
+from PyQt5.QtGui import QIcon
 
-# Initialize Pygame's mixer with some common frequency and size
+# Initialize Pygame
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)
 
+# Login window that leads to the main window
 class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -38,11 +40,11 @@ class LoginWindow(QMainWindow):
 
         self.central_widget.setLayout(layout)
 
+    # Sends the data to server for verification 
     @pyqtSlot()
     def attempt_login(self):
         username = self.username_entry.text()
         password = self.password_entry.text()
-        # Here, replace with the actual request to your server
         response = requests.post('http://localhost:5000/login', data={'username': username, 'password': password})
         if response.status_code == 200:
             self.main_app_window = MainAppWindow()
@@ -51,18 +53,18 @@ class LoginWindow(QMainWindow):
         else:
             QMessageBox.warning(self, 'Login failed', 'Incorrect username or password')
 
+    # Send the registration data to the server
     @pyqtSlot()
     def attempt_register(self):
         username = self.username_entry.text()
         password = self.password_entry.text()
-        # Here, replace with the actual request to your server
         response = requests.post('http://localhost:5000/register', data={'username': username, 'password': password})
         if response.status_code == 200:
             QMessageBox.information(self, 'Registration successful', 'You can now log in with your new credentials.')
         else:
             QMessageBox.warning(self, 'Registration failed', 'The registration process has failed.')
 
-
+# Main window with play and etc methods
 class MainAppWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -79,21 +81,36 @@ class MainAppWindow(QMainWindow):
         self.list_widget = QListWidget(self)
         layout.addWidget(self.list_widget)
 
-        play_button = QPushButton('Play', self)
-        play_button.clicked.connect(self.play_selected_file)
-        layout.addWidget(play_button)
+        # Playback controls layout
+        controls_layout = QHBoxLayout()
+        layout.addLayout(controls_layout)
 
-        pause_button = QPushButton('Pause', self)
-        pause_button.clicked.connect(self.pause_audio)
-        layout.addWidget(pause_button)
+        # Playback control buttons
+        self.play_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/play.png'), '', self)  
+        self.play_button.setIconSize(QSize(40, 40))
+        self.play_button.clicked.connect(self.play_selected_file)
+        controls_layout.addWidget(self.play_button)
 
-        stop_button = QPushButton('Stop', self)
-        stop_button.clicked.connect(self.stop_audio)
-        layout.addWidget(stop_button)
+        self.pause_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/pause.png'), '', self)  
+        self.pause_button.setIconSize(QSize(40, 40))
+        self.pause_button.clicked.connect(self.pause_audio)
+        controls_layout.addWidget(self.pause_button)
 
-        update_list_button = QPushButton('Update List', self)
-        update_list_button.clicked.connect(self.update_file_list)
-        layout.addWidget(update_list_button)
+        self.stop_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/stop.png'), '', self)  
+        self.stop_button.setIconSize(QSize(40, 40))
+        self.stop_button.clicked.connect(self.stop_audio)
+        controls_layout.addWidget(self.stop_button)
+
+        self.update_list_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/update.png'), '', self)
+        self.update_list_button.setIconSize(QSize (40, 40))
+        self.update_list_button.clicked.connect(self.update_file_list)
+        controls_layout.addWidget(self.update_list_button)
+
+        # Playback slider
+        self.playback_slider = QSlider(Qt.Horizontal, self)
+        self.playback_slider.setMinimum(0)
+        self.playback_slider.setMaximum(100)  
+        controls_layout.addWidget(self.playback_slider)
 
         self.central_widget.setLayout(layout)
 
@@ -114,12 +131,21 @@ class MainAppWindow(QMainWindow):
                 url = f'http://localhost:5000/stream/{self.current_song}'
                 response = requests.get(url)
                 if response.status_code == 200:
+                    # Ensure the file name is safe for the filesystem
+                    safe_file_name = self.current_song.replace(" ", "_").replace("-", "_")
+                    # Create a temporary file
                     temp_dir = tempfile.gettempdir()
-                    self.temp_file_path = os.path.join(temp_dir, os.path.basename(self.current_song))
-                    with open(self.temp_file_path, 'wb') as tmp_file:
+                    temp_file_path = os.path.join(temp_dir, safe_file_name + ".mp3")
+                    with open(temp_file_path, 'wb') as tmp_file:
                         tmp_file.write(response.content)
-                        pygame.mixer.music.load(self.temp_file_path)
+
+                    # Try loading the music file
+                    try:
+                        pygame.mixer.music.load(temp_file_path)
                         pygame.mixer.music.play()
+                        self.temp_file_path = temp_file_path
+                    except pygame.error as e:
+                        QMessageBox.warning(self, 'Playback Error', f'An error occurred: {e}')
                 else:
                     QMessageBox.warning(self, 'Stream Error', 'Failed to stream file')
 

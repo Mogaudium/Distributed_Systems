@@ -13,11 +13,12 @@ app.config['MYSQL_DB'] = 'audio_app'
 
 mysql = MySQL(app)
 
+# Register method
 @app.route('/register', methods=['POST'])
 def register():
     username = request.form['username']
     password = request.form['password']  
-    print("Received username:", username, "and password:", password)  # Debug print
+    print("Received username:", username, "and password:", password)  
     cursor = mysql.connection.cursor()
     cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, password))
     mysql.connection.commit()
@@ -25,6 +26,7 @@ def register():
 
     return jsonify({"message": "Registration successful"})
 
+# Login method
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form['username']
@@ -40,11 +42,13 @@ def login():
     else:
         return jsonify({"message": "Invalid credentials"}), 401
     
+# List audio files method
 @app.route('/list-audio')
 def list_audio():
     files = os.listdir('audio_files')  # Assuming 'audio_files' is your directory
     return jsonify(files)
 
+# Stream the selected audio file method
 @app.route('/stream/<filename>', methods=['GET'])
 def stream_audio(filename):
     directory = safe_join(app.root_path, 'audio_files')
