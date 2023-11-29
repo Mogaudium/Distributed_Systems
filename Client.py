@@ -3,7 +3,7 @@ import os
 import tempfile
 import pygame
 import requests
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QListWidget, QMessageBox, QSlider
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QListWidget, QMessageBox, QSlider
 from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal
 from PyQt5.QtGui import QIcon
 
@@ -69,7 +69,7 @@ class LoginWindow(QMainWindow):
     def attempt_login(self):
         username = self.username_entry.text()
         password = self.password_entry.text()
-        response = requests.post('http://localhost:5000/login', data={'username': username, 'password': password})
+        response = requests.post('http://localhost:8000/login', data={'username': username, 'password': password})
         if response.status_code == 200:
             self.main_app_window = MainAppWindow()
             self.main_app_window.show()
@@ -82,7 +82,7 @@ class LoginWindow(QMainWindow):
     def attempt_register(self):
         username = self.username_entry.text()
         password = self.password_entry.text()
-        response = requests.post('http://localhost:5000/register', data={'username': username, 'password': password})
+        response = requests.post('http://localhost:8000/register', data={'username': username, 'password': password})
         if response.status_code == 200:
             QMessageBox.information(self, 'Registration successful', 'You can now log in with your new credentials.')
         else:
@@ -159,7 +159,7 @@ class MainAppWindow(QMainWindow):
             selected_item = self.list_widget.currentItem()
             if selected_item is not None:
                 self.current_song = selected_item.text()
-                url = f'http://localhost:5000/stream/{self.current_song}'
+                url = f'http://localhost:8000/stream/{self.current_song}'
                 safe_file_name = self.current_song.replace(" ", "_").replace("-", "_")
                 self.download_thread = DownloadThread(url, safe_file_name)
                 self.download_thread.download_completed.connect(self.on_download_complete)
@@ -196,7 +196,7 @@ class MainAppWindow(QMainWindow):
     # Update existing songs
     @pyqtSlot()
     def update_file_list(self):
-        response = requests.get('http://localhost:5000/list-audio')
+        response = requests.get('http://localhost:8000/list-audio')
         if response.status_code == 200:
             self.list_widget.clear()
             self.list_widget.addItems(response.json())

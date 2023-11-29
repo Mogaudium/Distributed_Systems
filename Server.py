@@ -1,6 +1,7 @@
+import sys
 import os
 from flask import Flask, jsonify, request, send_from_directory
-from werkzeug.utils import secure_filename, safe_join
+from werkzeug.utils import safe_join
 from flask_mysqldb import MySQL
 
 app = Flask(__name__)
@@ -55,4 +56,7 @@ def stream_audio(filename):
     return send_from_directory(directory, filename)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, threaded=True)
+    port = 5000  # default port
+    if len(sys.argv) > 1:
+        port = int(sys.argv[1])
+    app.run(debug=True, port=port)
