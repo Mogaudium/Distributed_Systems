@@ -94,6 +94,7 @@ class MainAppWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Chinese Spotify')
         self.setGeometry(100, 100, 800, 600)
+        self.channel = pygame.mixer.Channel(0)  # Create a Channel object
         self.temp_file_path = None
         self.current_song = None
         self.is_paused = False
@@ -114,23 +115,23 @@ class MainAppWindow(QMainWindow):
         layout.addLayout(controls_layout)
 
         # Playback control buttons
-        self.play_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/play.png'), '', self)  
+        self.play_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/play.png'), '')
         self.play_button.setIconSize(QSize(40, 40))
         self.play_button.clicked.connect(self.play_selected_file)
         controls_layout.addWidget(self.play_button)
 
-        self.pause_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/pause.png'), '', self)  
+        self.pause_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/pause.png'), '')
         self.pause_button.setIconSize(QSize(40, 40))
         self.pause_button.clicked.connect(self.pause_audio)
         controls_layout.addWidget(self.pause_button)
 
-        self.stop_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/stop.png'), '', self)  
+        self.stop_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/stop.png'), '')
         self.stop_button.setIconSize(QSize(40, 40))
         self.stop_button.clicked.connect(self.stop_audio)
         controls_layout.addWidget(self.stop_button)
 
-        self.update_list_button = QPushButton(QIcon(r'C:\Users\ipman\OneDrive\Desktop\Distributed\Project\control_layout_png/update.png'), '', self)
-        self.update_list_button.setIconSize(QSize (40, 40))
+        self.update_list_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/update.png'), '')
+        self.update_list_button.setIconSize(QSize(40, 40))
         self.update_list_button.clicked.connect(self.update_file_list)
         controls_layout.addWidget(self.update_list_button)
 
@@ -146,14 +147,17 @@ class MainAppWindow(QMainWindow):
     # Delete temp file
     def cleanup(self):
         if self.temp_file_path and os.path.exists(self.temp_file_path):
-            os.remove(self.temp_file_path)
+            try:
+                os.remove(self.temp_file_path)  # Attempt to delete the temporary file
+            except Exception as e:
+                print(f"Error deleting file: {e}")
             self.temp_file_path = None
 
     # Play selected song
     @pyqtSlot()
     def play_selected_file(self):
         if self.is_paused:
-            pygame.mixer.music.unpause()
+            self.channel.unpause()
             self.is_paused = False
         else:
             selected_item = self.list_widget.currentItem()
@@ -169,13 +173,10 @@ class MainAppWindow(QMainWindow):
     # Check if the download was successful
     @pyqtSlot(str)
     def on_download_complete(self, file_path):
-        try:
-            pygame.mixer.music.load(file_path)
-            pygame.mixer.music.play()
-            self.temp_file_path = file_path
-        except pygame.error as e:
-            QMessageBox.warning(self, 'Playback Error', f'An error occurred: {e}')
-
+        sound = pygame.mixer.Sound(file_path)
+        self.channel.play(sound)  # Play the sound on the channel
+        self.temp_file_path = file_path
+        
     @pyqtSlot(str)
     def on_download_failed(self, error_message):
         QMessageBox.warning(self, 'Download Error', error_message)
@@ -183,15 +184,16 @@ class MainAppWindow(QMainWindow):
     # Pause audio method
     @pyqtSlot()
     def pause_audio(self):
-        pygame.mixer.music.pause()
-        self.is_paused = True
+        if self.channel.get_busy():  # Check if the channel is playing
+            self.channel.pause()  # Pause the channel
+            self.is_paused = True
 
     # Stop audio method
     @pyqtSlot()
     def stop_audio(self):
-        pygame.mixer.music.stop()
+        self.channel.stop()  # Stop the channel
         self.is_paused = False
-        self.cleanup()
+        self.cleanup()  # Perform cleanup after stopping
 
     # Update existing songs
     @pyqtSlot()
