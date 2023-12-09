@@ -1,5 +1,7 @@
 import sys
 import os
+import subprocess
+import pkg_resources
 import tempfile
 import pygame
 from mutagen.mp3 import MP3
@@ -7,6 +9,18 @@ import requests
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QListWidget, QMessageBox, QSlider, QLabel
 from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
+
+def install_dependencies():
+    required = {'pygame', 'mutagen', 'requests', 'PyQt5'}
+    installed = {pkg.key for pkg in pkg_resources.working_set}
+    missing = required - installed
+
+    if missing:
+        print("Installing missing dependencies...")
+        python = sys.executable
+        subprocess.check_call([python, '-m', 'pip', 'install', *missing])
+
+install_dependencies()
 
 # Initialize Pygame
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)
@@ -146,30 +160,28 @@ class MainAppWindow(QMainWindow):
         self.update_list_button.clicked.connect(self.update_file_list)
         controls_layout.addWidget(self.update_list_button)
 
-        # Time and playback slider layout
-        time_slider_layout = QHBoxLayout()
-        layout.addLayout(time_slider_layout)
+        # Time and volume controls layout
+        time_volume_layout = QHBoxLayout()
+        layout.addLayout(time_volume_layout)
 
-        # Current time label and total duration label
-        self.time_label = QLabel("00:00", self)  # Current playback time
-        self.total_duration_label = QLabel(" / 00:00", self)  # Total duration
-        time_slider_layout.addWidget(self.time_label)
-        time_slider_layout.addWidget(self.total_duration_label)
+        # Time labels
+        time_volume_layout.addWidget(self.time_label)
+        time_volume_layout.addWidget(self.total_duration_label)
 
         # Playback slider
         self.playback_slider = QSlider(Qt.Horizontal, self)
         self.playback_slider.setMinimum(0)
         self.playback_slider.setMaximum(100)
-        time_slider_layout.addWidget(self.playback_slider)
+        time_volume_layout.addWidget(self.playback_slider)
 
         # Volume control slider
         self.volume_slider = QSlider(Qt.Horizontal, self)
         self.volume_slider.setMinimum(0)
-        self.volume_slider.setMaximum(100)  # Volume range from 0 to 100
-        self.volume_slider.setValue(100)  # Default volume set to 100%
+        self.volume_slider.setMaximum(100)
+        self.volume_slider.setValue(100)
         self.volume_slider.valueChanged.connect(self.adjust_volume)
-        controls_layout.addWidget(QLabel("Volume:"))
-        controls_layout.addWidget(self.volume_slider)
+        time_volume_layout.addWidget(QLabel("Volume:"))
+        time_volume_layout.addWidget(self.volume_slider)
 
         self.central_widget.setLayout(layout)
 

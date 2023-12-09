@@ -1,8 +1,22 @@
 import sys
 import os
+import subprocess
+import pkg_resources
 from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.utils import safe_join
 from flask_mysqldb import MySQL
+
+def install_dependencies():
+    required = {'Flask', 'flask_mysqldb', 'Werkzeug'}
+    installed = {pkg.key for pkg in pkg_resources.working_set}
+    missing = required - installed
+
+    if missing:
+        print("Installing missing dependencies...")
+        python = sys.executable
+        subprocess.check_call([python, '-m', 'pip', 'install', *missing])
+
+install_dependencies()
 
 app = Flask(__name__)
 
