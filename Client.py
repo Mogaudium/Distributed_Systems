@@ -100,6 +100,7 @@ class MainAppWindow(QMainWindow):
 
         # Initialize timer and elapsed time
         self.time_label = QLabel("00:00", self)
+        self.total_duration_label = QLabel("00:00", self)  # Total duration
         self.elapsed_time = 0
         self.playback_timer = QTimer(self)
         self.playback_timer.timeout.connect(self.update_playback)
@@ -145,12 +146,30 @@ class MainAppWindow(QMainWindow):
         self.update_list_button.clicked.connect(self.update_file_list)
         controls_layout.addWidget(self.update_list_button)
 
+        # Time and playback slider layout
+        time_slider_layout = QHBoxLayout()
+        layout.addLayout(time_slider_layout)
+
+        # Current time label and total duration label
+        self.time_label = QLabel("00:00", self)  # Current playback time
+        self.total_duration_label = QLabel(" / 00:00", self)  # Total duration
+        time_slider_layout.addWidget(self.time_label)
+        time_slider_layout.addWidget(self.total_duration_label)
+
         # Playback slider
         self.playback_slider = QSlider(Qt.Horizontal, self)
         self.playback_slider.setMinimum(0)
-        self.playback_slider.setMaximum(100)  
-        controls_layout.addWidget(self.playback_slider)
-        controls_layout.addWidget(self.time_label)
+        self.playback_slider.setMaximum(100)
+        time_slider_layout.addWidget(self.playback_slider)
+
+        # Volume control slider
+        self.volume_slider = QSlider(Qt.Horizontal, self)
+        self.volume_slider.setMinimum(0)
+        self.volume_slider.setMaximum(100)  # Volume range from 0 to 100
+        self.volume_slider.setValue(100)  # Default volume set to 100%
+        self.volume_slider.valueChanged.connect(self.adjust_volume)
+        controls_layout.addWidget(QLabel("Volume:"))
+        controls_layout.addWidget(self.volume_slider)
 
         self.central_widget.setLayout(layout)
 
@@ -182,16 +201,15 @@ class MainAppWindow(QMainWindow):
             self.download_thread.download_completed.connect(self.on_download_complete)
             self.download_thread.download_failed.connect(self.on_download_failed)
             self.download_thread.start()
-
-    def resume_playback(self):
-        self.channel.unpause()
-        self.playback_timer.start(1000)
-        self.is_paused = False
     
     def get_audio_length(self, file_path):
         audio = MP3(file_path)
         audio_length = audio.info.length  # length in seconds
         return int(audio_length)
+    
+    def update_total_duration_label(self, duration):
+        mins, secs = divmod(duration, 60)
+        self.total_duration_label.setText(f"{mins:02d}:{secs:02d}")
 
     # Check if the download was successful
     @pyqtSlot(str)
@@ -204,6 +222,7 @@ class MainAppWindow(QMainWindow):
         self.playback_slider.setMaximum(self.audio_length)
         self.playback_timer.start(1000)
         self.elapsed_time = 0
+        self.update_total_duration_label(self.audio_length)
         
     @pyqtSlot(str)
     def on_download_failed(self, error_message):
@@ -216,6 +235,11 @@ class MainAppWindow(QMainWindow):
             self.channel.pause()
             self.playback_timer.stop()
             self.is_paused = True
+
+    def resume_playback(self):
+        self.channel.unpause()
+        self.playback_timer.start(1000)
+        self.is_paused = False
 
     # Stop audio method
     @pyqtSlot()
@@ -237,6 +261,10 @@ class MainAppWindow(QMainWindow):
 
         mins, secs = divmod(self.elapsed_time, 60)
         self.time_label.setText(f"{mins:02d}:{secs:02d}")
+
+    def adjust_volume(self, value):
+        volume_level = value / 100  # Convert to a range between 0 and 1
+        self.channel.set_volume(volume_level)
 
     # Delete temp file
     def cleanup(self):
