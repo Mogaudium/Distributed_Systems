@@ -143,15 +143,15 @@ class MainAppWindow(QMainWindow):
 
         self.central_widget.setLayout(layout)
 
-
-    # Delete temp file
-    def cleanup(self):
-        if self.temp_file_path and os.path.exists(self.temp_file_path):
-            try:
-                os.remove(self.temp_file_path)  # Attempt to delete the temporary file
-            except Exception as e:
-                print(f"Error deleting file: {e}")
-            self.temp_file_path = None
+    # Update existing songs
+    @pyqtSlot()
+    def update_file_list(self):
+        response = requests.get('http://localhost:8000/list-audio')
+        if response.status_code == 200:
+            self.list_widget.clear()
+            self.list_widget.addItems(response.json())
+        else:
+            QMessageBox.warning(self, 'Error', 'Failed to retrieve file list')
 
     # Play selected song
     @pyqtSlot()
@@ -195,15 +195,14 @@ class MainAppWindow(QMainWindow):
         self.is_paused = False
         self.cleanup()  # Perform cleanup after stopping
 
-    # Update existing songs
-    @pyqtSlot()
-    def update_file_list(self):
-        response = requests.get('http://localhost:8000/list-audio')
-        if response.status_code == 200:
-            self.list_widget.clear()
-            self.list_widget.addItems(response.json())
-        else:
-            QMessageBox.warning(self, 'Error', 'Failed to retrieve file list')
+    # Delete temp file
+    def cleanup(self):
+        if self.temp_file_path and os.path.exists(self.temp_file_path):
+            try:
+                os.remove(self.temp_file_path)  # Attempt to delete the temporary file
+            except Exception as e:
+                print(f"Error deleting file: {e}")
+            self.temp_file_path = None
 
     # Close event method
     def closeEvent(self, event):
