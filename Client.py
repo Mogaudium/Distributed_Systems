@@ -128,6 +128,16 @@ class MainAppWindow(QMainWindow):
         self.setup_ui()
 
     def setup_ui(self):
+
+        # Get the directory of the current script
+        script_dir = os.path.dirname(__file__)
+
+        # Define relative paths to the icons
+        play_icon_path = os.path.join(script_dir, 'control_layout', 'play.png')
+        pause_icon_path = os.path.join(script_dir, 'control_layout', 'pause.png')
+        stop_icon_path = os.path.join(script_dir, 'control_layout', 'stop.png')
+        update_icon_path = os.path.join(script_dir, 'control_layout', 'update.png')
+
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         layout = QVBoxLayout()
@@ -140,22 +150,22 @@ class MainAppWindow(QMainWindow):
         layout.addLayout(controls_layout)
 
         # Playback control buttons
-        self.play_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/play.png'), '')
+        self.play_button = QPushButton(QIcon(play_icon_path), '')
         self.play_button.setIconSize(QSize(40, 40))
         self.play_button.clicked.connect(self.play_selected_file)
         controls_layout.addWidget(self.play_button)
 
-        self.pause_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/pause.png'), '')
+        self.pause_button = QPushButton(QIcon(pause_icon_path), '')
         self.pause_button.setIconSize(QSize(40, 40))
         self.pause_button.clicked.connect(self.pause_audio)
         controls_layout.addWidget(self.pause_button)
 
-        self.stop_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/stop.png'), '')
+        self.stop_button = QPushButton(QIcon(stop_icon_path), '')
         self.stop_button.setIconSize(QSize(40, 40))
         self.stop_button.clicked.connect(self.stop_audio)
         controls_layout.addWidget(self.stop_button)
 
-        self.update_list_button = QPushButton(QIcon(r'C:\Users\annao\OneDrive\Έγγραφα\GitHub\Distributed_Systems\control_layout/update.png'), '')
+        self.update_list_button = QPushButton(QIcon(update_icon_path), '')
         self.update_list_button.setIconSize(QSize(40, 40))
         self.update_list_button.clicked.connect(self.update_file_list)
         controls_layout.addWidget(self.update_list_button)
