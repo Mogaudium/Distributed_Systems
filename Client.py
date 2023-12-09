@@ -2,9 +2,10 @@ import sys
 import os
 import tempfile
 import pygame
+from mutagen.mp3 import MP3
 import requests
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QListWidget, QMessageBox, QSlider
-from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QListWidget, QMessageBox, QSlider, QLabel
+from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
 
 # Initialize Pygame
@@ -94,7 +95,16 @@ class MainAppWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Chinese Spotify')
         self.setGeometry(100, 100, 800, 600)
+
         self.channel = pygame.mixer.Channel(0)  # Create a Channel object
+
+        # Initialize timer and elapsed time
+        self.time_label = QLabel("00:00", self)
+        self.elapsed_time = 0
+        self.playback_timer = QTimer(self)
+        self.playback_timer.timeout.connect(self.update_playback)
+        self.audio_length = 0
+
         self.temp_file_path = None
         self.current_song = None
         self.is_paused = False
@@ -140,6 +150,7 @@ class MainAppWindow(QMainWindow):
         self.playback_slider.setMinimum(0)
         self.playback_slider.setMaximum(100)  
         controls_layout.addWidget(self.playback_slider)
+        controls_layout.addWidget(self.time_label)
 
         self.central_widget.setLayout(layout)
 
@@ -157,25 +168,42 @@ class MainAppWindow(QMainWindow):
     @pyqtSlot()
     def play_selected_file(self):
         if self.is_paused:
-            self.channel.unpause()
-            self.is_paused = False
+            self.resume_playback()
         else:
-            selected_item = self.list_widget.currentItem()
-            if selected_item is not None:
-                self.current_song = selected_item.text()
-                url = f'http://localhost:8000/stream/{self.current_song}'
-                safe_file_name = self.current_song.replace(" ", "_").replace("-", "_")
-                self.download_thread = DownloadThread(url, safe_file_name)
-                self.download_thread.download_completed.connect(self.on_download_complete)
-                self.download_thread.download_failed.connect(self.on_download_failed)
-                self.download_thread.start()
+            self.start_new_playback()
+
+    def start_new_playback(self):
+        selected_item = self.list_widget.currentItem()
+        if selected_item is not None:
+            self.current_song = selected_item.text()
+            url = f'http://localhost:8000/stream/{self.current_song}'
+            safe_file_name = self.current_song.replace(" ", "_").replace("-", "_")
+            self.download_thread = DownloadThread(url, safe_file_name)
+            self.download_thread.download_completed.connect(self.on_download_complete)
+            self.download_thread.download_failed.connect(self.on_download_failed)
+            self.download_thread.start()
+
+    def resume_playback(self):
+        self.channel.unpause()
+        self.playback_timer.start(1000)
+        self.is_paused = False
+    
+    def get_audio_length(self, file_path):
+        audio = MP3(file_path)
+        audio_length = audio.info.length  # length in seconds
+        return int(audio_length)
 
     # Check if the download was successful
     @pyqtSlot(str)
     def on_download_complete(self, file_path):
         sound = pygame.mixer.Sound(file_path)
-        self.channel.play(sound)  # Play the sound on the channel
+        self.channel.play(sound)
         self.temp_file_path = file_path
+
+        self.audio_length = self.get_audio_length(file_path)
+        self.playback_slider.setMaximum(self.audio_length)
+        self.playback_timer.start(1000)
+        self.elapsed_time = 0
         
     @pyqtSlot(str)
     def on_download_failed(self, error_message):
@@ -184,16 +212,31 @@ class MainAppWindow(QMainWindow):
     # Pause audio method
     @pyqtSlot()
     def pause_audio(self):
-        if self.channel.get_busy():  # Check if the channel is playing
-            self.channel.pause()  # Pause the channel
+        if self.channel.get_busy():
+            self.channel.pause()
+            self.playback_timer.stop()
             self.is_paused = True
 
     # Stop audio method
     @pyqtSlot()
     def stop_audio(self):
-        self.channel.stop()  # Stop the channel
+        self.channel.stop()
+        self.playback_timer.stop()
+        self.elapsed_time = 0
+        self.playback_slider.setValue(0)
         self.is_paused = False
-        self.cleanup()  # Perform cleanup after stopping
+        self.cleanup()
+
+    def update_playback(self):
+        if not self.channel.get_busy():
+            self.playback_timer.stop()
+            return
+
+        self.elapsed_time += 1
+        self.playback_slider.setValue(min(self.elapsed_time, self.audio_length))
+
+        mins, secs = divmod(self.elapsed_time, 60)
+        self.time_label.setText(f"{mins:02d}:{secs:02d}")
 
     # Delete temp file
     def cleanup(self):
