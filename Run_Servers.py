@@ -1,6 +1,7 @@
 import subprocess
 import sys
 
+# Define a function to start instances of server
 def run_server(port):
     subprocess.Popen([sys.executable, "Server.py", str(port)])
 

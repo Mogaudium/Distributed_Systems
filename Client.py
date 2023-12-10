@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHB
 from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
 
+# Function to install missing Python dependencies
 def install_dependencies():
     required = {'pygame', 'mutagen', 'requests', 'PyQt5'}
     installed = {pkg.key for pkg in pkg_resources.working_set}
@@ -22,10 +23,10 @@ def install_dependencies():
 
 install_dependencies()
 
-# Initialize Pygame
+# Initialize the Pygame mixer for audio playback# Initialize the Pygame mixer for audio playback
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)
 
-# Threading subclass
+# Class for handling file download in a separate thread
 class DownloadThread(QThread):
     download_completed = pyqtSignal(str)
     download_failed = pyqtSignal(str)
@@ -49,7 +50,7 @@ class DownloadThread(QThread):
         except Exception as e:
             self.download_failed.emit(str(e))
 
-# Login window that leads to the main window
+# Class for the login window
 class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -79,7 +80,7 @@ class LoginWindow(QMainWindow):
 
         self.central_widget.setLayout(layout)
 
-    # Sends the data to server for verification 
+    # Method to handle login attempts
     @pyqtSlot()
     def attempt_login(self):
         username = self.username_entry.text()
@@ -92,7 +93,7 @@ class LoginWindow(QMainWindow):
         else:
             QMessageBox.warning(self, 'Login failed', 'Incorrect username or password')
 
-    # Send the registration data to the server
+    # Method to handle registration attempts
     @pyqtSlot()
     def attempt_register(self):
         username = self.username_entry.text()
@@ -127,6 +128,7 @@ class MainAppWindow(QMainWindow):
         # Setup UI
         self.setup_ui()
 
+    # Method to set up the user interface
     def setup_ui(self):
 
         # Get the directory of the current script
@@ -213,6 +215,7 @@ class MainAppWindow(QMainWindow):
         else:
             self.start_new_playback()
 
+    # Method to start playing a new song
     def start_new_playback(self):
         selected_item = self.list_widget.currentItem()
         if selected_item is not None:
@@ -224,11 +227,13 @@ class MainAppWindow(QMainWindow):
             self.download_thread.download_failed.connect(self.on_download_failed)
             self.download_thread.start()
     
+    # Method to retrieve the length of an audio file
     def get_audio_length(self, file_path):
         audio = MP3(file_path)
         audio_length = audio.info.length  # length in seconds
         return int(audio_length)
     
+    # Method to update the total duration label
     def update_total_duration_label(self, duration):
         mins, secs = divmod(duration, 60)
         self.total_duration_label.setText(f"{mins:02d}:{secs:02d}")
@@ -245,12 +250,13 @@ class MainAppWindow(QMainWindow):
         self.playback_timer.start(1000)
         self.elapsed_time = 0
         self.update_total_duration_label(self.audio_length)
-        
+
+    # Method called when a download fails  
     @pyqtSlot(str)
     def on_download_failed(self, error_message):
         QMessageBox.warning(self, 'Download Error', error_message)
 
-    # Pause audio method
+    # Method to pause the audio
     @pyqtSlot()
     def pause_audio(self):
         if self.channel.get_busy():
@@ -258,12 +264,13 @@ class MainAppWindow(QMainWindow):
             self.playback_timer.stop()
             self.is_paused = True
 
+    # Method to resume playback after pausing
     def resume_playback(self):
         self.channel.unpause()
         self.playback_timer.start(1000)
         self.is_paused = False
 
-    # Stop audio method
+    # Method to stop the audio
     @pyqtSlot()
     def stop_audio(self):
         self.channel.stop()
@@ -273,6 +280,7 @@ class MainAppWindow(QMainWindow):
         self.is_paused = False
         self.cleanup()
 
+    # Method to update elapsed time of the song 
     def update_playback(self):
         if not self.channel.get_busy():
             self.playback_timer.stop()
@@ -284,6 +292,7 @@ class MainAppWindow(QMainWindow):
         mins, secs = divmod(self.elapsed_time, 60)
         self.time_label.setText(f"{mins:02d}:{secs:02d}")
 
+    # Method to adjust the volume
     def adjust_volume(self, value):
         volume_level = value / 100  # Convert to a range between 0 and 1
         self.channel.set_volume(volume_level)

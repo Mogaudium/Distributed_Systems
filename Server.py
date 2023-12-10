@@ -1,13 +1,10 @@
 import sys
+import requests
 import subprocess
 import pkg_resources
-from flask import Flask, jsonify, request
-from flask_mysqldb import MySQL
-import Registration_Service
-import Login_Service
-import Audio_List_Service
-import Audio_Stream_Service
+from flask import Flask, jsonify, request, redirect
 
+# Function to install missing Python dependencies
 def install_dependencies():
     required = {'Flask', 'flask_mysqldb', 'Werkzeug'}
     installed = {pkg.key for pkg in pkg_resources.working_set}
@@ -22,35 +19,37 @@ install_dependencies()
 
 app = Flask(__name__)
 
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'egor'
-app.config['MYSQL_DB'] = 'audio_app'
 
-mysql = MySQL(app)
-
+# Forward the registration request to the registration microservice
 @app.route('/register', methods=['POST'])
 def register():
-    username = request.form['username']
-    password = request.form['password']
-    result = Registration_Service.register_user(mysql, username, password)
-    return jsonify(result)
+    response = requests.post('http://localhost:5003/register', data=request.form)
+    return jsonify(response.json()), response.status_code
 
+# Forward the login request to the login microservice
 @app.route('/login', methods=['POST'])
 def login():
-    username = request.form['username']
-    password = request.form['password']
-    message, status_code = Login_Service.login_user(mysql, username, password)
-    return jsonify(message), status_code
+    response = requests.post('http://localhost:5004/login', data=request.form)
+    return jsonify(response.json()), response.status_code
 
+# Send a request to the audio listing microservice
 @app.route('/list-audio')
 def list_audio():
-    files = Audio_List_Service.list_audio_files('audio_files')
-    return jsonify(files)
+    try:
+        response = requests.get('http://localhost:5010/list-audio')  # Check the response status
+        if response.status_code == 200:
+            return jsonify(response.json()), 200
+        else:
+            return jsonify({"error": "Microservice error"}), response.status_code
+    except requests.exceptions.RequestException as e:
+        # Log connection errors
+        app.logger.error(f"Microservice connection error: {str(e)}")
+        return jsonify({"error": "Microservice connection error"}), 500
 
+# Redirect the request to the audio streaming microservice
 @app.route('/stream/<filename>', methods=['GET'])
 def stream_audio(filename):
-    return Audio_Stream_Service.stream_audio_file(app, filename)
+    return redirect(f'http://localhost:5020/stream/{filename}')
 
 if __name__ == '__main__':
     port = 5000
