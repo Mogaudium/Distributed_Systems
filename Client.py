@@ -1,7 +1,5 @@
 import sys
 import os
-import subprocess
-import pkg_resources
 import tempfile
 import pygame
 from mutagen.mp3 import MP3
@@ -9,19 +7,6 @@ import requests
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QListWidget, QMessageBox, QSlider, QLabel
 from PyQt5.QtCore import pyqtSlot, Qt, QSize, QThread, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
-
-# Function to install missing Python dependencies
-def install_dependencies():
-    required = {'pygame', 'mutagen', 'requests', 'PyQt5'}
-    installed = {pkg.key for pkg in pkg_resources.working_set}
-    missing = required - installed
-
-    if missing:
-        print("Installing missing dependencies...")
-        python = sys.executable
-        subprocess.check_call([python, '-m', 'pip', 'install', *missing])
-
-install_dependencies()
 
 # Initialize the Pygame mixer for audio playback# Initialize the Pygame mixer for audio playback
 pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=4096)

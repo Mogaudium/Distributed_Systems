@@ -6,7 +6,7 @@ def run_script(script_name):
 
 if __name__ == "__main__":
     # Scripts to be started
-    scripts = ["Run_Servers.py", "Run_Microservices.py", "Load_Balancer.py"]
+    scripts = ["Dependencies.py", "Run_Servers.py", "Run_Microservices.py", "Load_Balancer.py"]
 
     # Start each script in a separate process
     for script in scripts:

@@ -9,7 +9,7 @@ Mutagen
 PyQt5
 Requests
 
-Please note that inside the Server.py and Client.py, there is a script that automatically checks if the dependencies are installed, if not the script will download all the needed dependecies.
+Please note that inside the Chinese_Spotify, there is a script that automatically checks if the dependencies are installed, if not the script will download all the needed dependecies.
 
 Setup and Installation:
 Ensure Python 3.9 or higher is installed on your system.
@@ -33,7 +33,7 @@ CREATE TABLE users (
 3. Register the user with username and password and then log in
 
 
-Start Microservices: Run Chinese_Spotify.py. This script automatically launches all necessary microservices, servers, and the load balancer.
+Start Microservices: Run Chinese_Spotify.py. This script automatically launches all necessary microservices, servers, the load balancer and a script to download all the required dependecies.
 
 Microservices for registration, login, audio listing, and streaming will start on ports 5003, 5004, 5010, and 5020 respectively.
 Server instances will start on ports 5000, 5001, and 5002.
