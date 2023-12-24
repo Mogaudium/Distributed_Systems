@@ -212,7 +212,7 @@ class MainAppWindow(QMainWindow):
         selected_item = self.list_widget.currentItem() # Retrieve the currently selected item from the list widget
         if selected_item is not None:
             self.current_song = selected_item.text()
-            url = f'http://localhost/stream/{self.current_song}' # Form the URL to stream the selected song
+            url = f'http://localhost:8000/stream/{self.current_song}' # Form the URL to stream the selected song
             safe_file_name = self.current_song.replace(" ", "_").replace("-", "_") # Replace spaces and hyphens in the song name for safe file naming
 
             # Initialize a new download thread with the URL and safe file name
