@@ -6,3 +6,6 @@
 2023-12-24 17:26:41,303 - LoginService - INFO - Login attempt for user: egor, Password Hash: 8fbcde4b93bb48d351fc2450f09975c4dc1504478138f384838ae29fb2ee4772, IP: 127.0.0.1
 2023-12-24 17:27:25,297 - LoginService - INFO - Login attempt for user: egor, Password Hash: 8fbcde4b93bb48d351fc2450f09975c4dc1504478138f384838ae29fb2ee4772, IP: 127.0.0.1
 2023-12-24 17:28:12,898 - LoginService - INFO - Login attempt for user: egor, Password Hash: 8fbcde4b93bb48d351fc2450f09975c4dc1504478138f384838ae29fb2ee4772, IP: 127.0.0.1
+2023-12-24 18:00:09,275 - LoginService - INFO - Login attempt for user: egor, Password Hash: 8fbcde4b93bb48d351fc2450f09975c4dc1504478138f384838ae29fb2ee4772, IP: 127.0.0.1
+2023-12-24 18:02:33,302 - LoginService - INFO - Login attempt for user: egor, Password Hash: 8fbcde4b93bb48d351fc2450f09975c4dc1504478138f384838ae29fb2ee4772, IP: 192.168.1.6
+2023-12-24 18:09:11,494 - LoginService - INFO - Login attempt for user: egor, Password Hash: 8fbcde4b93bb48d351fc2450f09975c4dc1504478138f384838ae29fb2ee4772, IP: 192.168.1.6

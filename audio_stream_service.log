@@ -1,1 +1,5 @@
 2023-12-24 16:00:21,417 - AudioStreamService - INFO - Requested to stream audio file: The Beatles - Help!.mp3 from IP: 127.0.0.1
+2023-12-24 18:02:41,390 - AudioStreamService - INFO - Requested to stream audio file: Mama I'm a criminal [Official Video].mp3 from IP: 192.168.1.198
+2023-12-24 18:02:45,338 - AudioStreamService - INFO - Requested to stream audio file: The Beatles - Help!.mp3 from IP: 192.168.1.198
+2023-12-24 18:09:17,674 - AudioStreamService - INFO - Requested to stream audio file: Mama I'm a criminal [Official Video].mp3 from IP: 192.168.1.198
+2023-12-24 18:09:31,601 - AudioStreamService - INFO - Requested to stream audio file: The Beatles - Help!.mp3 from IP: 192.168.1.198
