@@ -1,14 +1,15 @@
 from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 import logging
-from logging.handlers import RotatingFileHandler # RotatingFileHandler is used in order to avoid the log file becoming too large.
+from logging.handlers import RotatingFileHandler
+import hashlib
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('LoginService')
 
-# Log to a file
-file_handler = RotatingFileHandler('login_service.log', maxBytes=10000, backupCount=1) # When the log file reaches 10000 bytes, a new file will be started.
+# Configure a log file with rotation to manage log size
+file_handler = RotatingFileHandler('login_service.log', maxBytes=10000, backupCount=1) # The log file rotates after reaching a size of 10000 bytes, keeping one backup file
 file_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 file_handler.setFormatter(formatter)
@@ -19,41 +20,41 @@ app = Flask(__name__)
 # MySQL configurations
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'egor' # Or the used password 
+app.config['MYSQL_PASSWORD'] = 'egor' # Replace with the actual password of your SQL
 app.config['MYSQL_DB'] = 'audio_app'
 
 mysql = MySQL(app)
 
-@app.route('/login', methods=['POST'])  # Define a route for the login endpoint, allowing POST requests
+@app.route('/login', methods=['POST'])
 def login():
     try:
-        # Extract username and password from the form data sent in the request
+        # Extract username and password from the form data
         username = request.form['username']
         password = request.form['password']
 
-        # Create a new database cursor
+        # Get the hashed version of the password for logging
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+        # Get the client's IP address
+        client_ip = request.remote_addr
+
         cursor = mysql.connection.cursor()
-        # Execute a SQL query to check if the user exists with the given username and password
         cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, password))
-        user = cursor.fetchone()  # Fetch one record from the query result
-        cursor.close()  # Close the cursor
+        user = cursor.fetchone()
+        cursor.close()
 
-        # Check if a user record was found
         if user:
-            logger.info("Login attempt for user: " + request.form['username'])
+            # Log the username, hashed password, and client IP
+            logger.info(f"Login attempt for user: {username}, Password Hash: {hashed_password}, IP: {client_ip}")
 
-            # If the user exists, return a success message
             return jsonify({"message": "Logged in successfully"})
         else:
-            # If no user record was found, return an error message with a 401 Unauthorized status code
+            logger.warning(f"Failed login attempt for user: {username}, Password Hash: {hashed_password}, IP: {client_ip}")
             return jsonify({"message": "Invalid credentials"}), 401
-        
+
     except Exception as e:
         logger.error(f"Error during login: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-            
-        
-
 if __name__ == '__main__':
-    app.run(port=5004)
+    app.run(host = '192.168.1.6', port=5004)

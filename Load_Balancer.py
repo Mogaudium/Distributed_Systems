@@ -2,7 +2,7 @@ import socket
 from http.server import BaseHTTPRequestHandler, HTTPServer  
 
 # List of backend servers (Flask instances) with their IP addresses and ports
-BACKEND_SERVERS = ['127.0.0.1:5000', '127.0.0.1:5001' , '127.0.0.1:5002']
+BACKEND_SERVERS = ['192.168.1.6:5000', '192.168.1.6:5001' , '192.168.1.6:5002']
 current_server = 0  # Index to keep track of the current server for load balancing
 
 class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
@@ -50,7 +50,7 @@ class ProxyHTTPRequestHandler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     # Set up the load balancer's HTTP server
-    load_balancer_address = ('', 8000)  # Load balancer's IP address and port
+    load_balancer_address = ('192.168.1.6', 8000)  # Load balancer's IP address and port
     httpd = HTTPServer(load_balancer_address, ProxyHTTPRequestHandler)
     print(f"Starting load balancer on {load_balancer_address[0]}:{load_balancer_address[1]}")
     httpd.serve_forever()  # Start the server and handle requests indefinitely
