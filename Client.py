@@ -77,7 +77,7 @@ class LoginWindow(QMainWindow):
     def attempt_login(self):
         username = self.username_entry.text() # Username entry
         password = self.password_entry.text() # Password entry
-        response = requests.post('http://192.168.1.6:8000/login', data={'username': username, 'password': password}) # POST method for username and password
+        response = requests.post('http://localhost:8000/login', data={'username': username, 'password': password}) # POST method for username and password
         if response.status_code == 200: # If the response is 200, log in the user and open MainAppWindow
             self.main_app_window = MainAppWindow()
             self.main_app_window.show()
@@ -90,7 +90,7 @@ class LoginWindow(QMainWindow):
     def attempt_register(self):
         username = self.username_entry.text() # Username entry
         password = self.password_entry.text() # Password entry
-        response = requests.post('http://192.168.1.6:8000/register', data={'username': username, 'password': password}) # POST method for username and password
+        response = requests.post('http://localhost:8000/register', data={'username': username, 'password': password}) # POST method for username and password
         if response.status_code == 200: # If the response is 200, register the user
             QMessageBox.information(self, 'Registration successful', 'You can now log in with your new credentials.')
         else:
@@ -192,7 +192,7 @@ class MainAppWindow(QMainWindow):
     # Update existing songs
     @pyqtSlot()
     def update_file_list(self):
-        response = requests.get('http://192.168.1.6:8000/list-audio')
+        response = requests.get('http://localhost:8000/list-audio')
         if response.status_code == 200:
             self.list_widget.clear()
             self.list_widget.addItems(response.json())
@@ -212,7 +212,7 @@ class MainAppWindow(QMainWindow):
         selected_item = self.list_widget.currentItem() # Retrieve the currently selected item from the list widget
         if selected_item is not None:
             self.current_song = selected_item.text()
-            url = f'http://192.168.1.6:8000/stream/{self.current_song}' # Form the URL to stream the selected song
+            url = f'http://localhost/stream/{self.current_song}' # Form the URL to stream the selected song
             safe_file_name = self.current_song.replace(" ", "_").replace("-", "_") # Replace spaces and hyphens in the song name for safe file naming
 
             # Initialize a new download thread with the URL and safe file name

@@ -12,4 +12,4 @@ def list_audio():
         return jsonify({'error': 'Unable to list files'}), 500 # The jsonify function is used to convert the erros to JSON format, which is then returned as the response to the client
 
 if __name__ == '__main__': 
-    app.run(host = '192.168.1.6', port=5010)  # Start the Flask application on port 5010
+    app.run(port=5010)  # Start the Flask application on port 5010

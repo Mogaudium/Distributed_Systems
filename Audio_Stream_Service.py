@@ -28,4 +28,4 @@ def stream_audio(filename):
         return f"Error streaming audio file: {filename}", 500
 
 if __name__ == '__main__':
-    app.run(host = '192.168.1.6', port=5020)
+    app.run(port=5020)
